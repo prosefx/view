@@ -24,6 +24,11 @@ final class EditorMouse {
         var state = view.model.state();
         var doc = state.getDoc();
         var tb = view.positions.at(pos);
+        if (e.getClickCount() == 1 && !e.isShiftDown() && e.isPrimaryButtonDown()) {
+            // a click on a task box switches it; Ctrl+click on a link or a footnote follows it
+            if (Tasks.onBox(view, e.getSceneX(), e.getSceneY())) { Tasks.toggle(view, tb); e.consume(); return; }
+            if (e.isShortcutDown() && Links.activate(view, pos)) { e.consume(); return; }
+        }
         view.model.select(switch (e.getClickCount()) {
             case 1 -> Motion.select(state, pos, e.isShiftDown());
             case 2 -> word(tb, pos);

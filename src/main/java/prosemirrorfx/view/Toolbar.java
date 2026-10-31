@@ -47,6 +47,7 @@ public final class Toolbar {
         if (view.toc != null) view.toc.visibleProperty().addListener((o, a, b) -> refresh.run());
         view.lineNumbersProperty().addListener((o, a, b) -> refresh.run());
         view.activeLineProperty().addListener((o, a, b) -> refresh.run());
+        view.sourceModeProperty().addListener((o, a, b) -> refresh.run());
         refresh.run();
         view.follow(bar);
         return bar;

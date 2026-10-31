@@ -42,6 +42,12 @@ public final class MarkdownEditor {
     /** The underlying control, for what this class does not wrap (find, zoom, line numbers, a table of contents). */
     public DocView view() { return view; }
 
+    /** The folder a relative image path in the text is read against: the folder of the open file. Set it before setMarkdown. */
+    public void setBaseDirectory(java.nio.file.Path dir) { view.setBaseDirectory(dir); }
+
+    /** Allow pictures at http(s) addresses to be fetched; off by default. */
+    public void setRemoteImages(boolean on) { view.setRemoteImages(on); }
+
     /** A toolbar for this editor, to place above it. */
     public javafx.scene.Node toolbar() { return Toolbar.of(view); }
 
@@ -101,6 +107,8 @@ public final class MarkdownEditor {
     public int caretSourceOffset() { return view.caretSourceOffset(); }
 
     public void goToLine(int line) { view.goToLine(line); }
+    /** Next (direction > 0) or previous comment, a paragraph starting `>>`; wraps around; false when there is none. */
+    public boolean jumpComment(int direction) { return view.jumpComment(direction); }
 
     public void goToSource(int line, int column) { view.goToSource(line, column); }
 

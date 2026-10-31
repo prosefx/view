@@ -23,6 +23,7 @@ final class EditorKeys {
     }
 
     void typed(KeyEvent e) {
+        if (view.sourceMode()) return;
         if (swallowTyped) { swallowTyped = false; e.consume(); return; }
         var ch = e.getCharacter();
         var shortcut = (e.isControlDown() && !e.isAltDown()) || e.isMetaDown();
@@ -33,6 +34,7 @@ final class EditorKeys {
     }
 
     void pressed(KeyEvent e) {
+        if (view.sourceMode()) return;
         var ctrl = e.isShortcutDown();
         var shift = e.isShiftDown();
         swallowTyped = false;
@@ -58,7 +60,7 @@ final class EditorKeys {
         var state = view.model.state();
         var head = state.getSelection().getHead();
         var handled = switch (code) {
-            case ENTER -> run(shift ? hardBreak : enter);
+            case ENTER -> ctrl && view.activate() || run(shift ? hardBreak : enter);
             case BACK_SPACE -> ctrl ? deleteWord(-1) : run(backspace);
             case DELETE -> shift ? dispatch(Clip.cut(state)) : ctrl ? deleteWord(1) : run(delete);
             case INSERT -> shift ? dispatch(Clip.paste(state)) : ctrl && Clip.copy(state);

@@ -28,7 +28,8 @@ public enum EditorAction {
     FIND("Find and replace", "Ctrl+F", "find_replace", (BiConsumer<DocView, Node>) (view, from) -> view.find()),
     CONTENTS("Contents", "", "toc", (BiConsumer<DocView, Node>) (view, from) -> { if (view.toc != null) view.toc.toggle(); }),
     LINES("Line numbers", "", "123", (BiConsumer<DocView, Node>) (view, from) -> view.setLineNumbers(!view.lineNumbers())),
-    ACTIVE_LINE("Highlight current line", "", "highlight", (BiConsumer<DocView, Node>) (view, from) -> view.setActiveLine(!view.activeLine()));
+    ACTIVE_LINE("Highlight current line", "", "highlight", (BiConsumer<DocView, Node>) (view, from) -> view.setActiveLine(!view.activeLine())),
+    SOURCE("Edit source (the Markdown text)", "", "code", (BiConsumer<DocView, Node>) (view, from) -> view.setSourceMode(!view.sourceMode()));
 
     public final String label, shortcut, icon;
     final Command command;
@@ -58,7 +59,7 @@ public enum EditorAction {
     boolean available(DocView view) { return this != CONTENTS || view.toc != null; }
 
     /** Toggle buttons: pressed when the caret or selection already has it. */
-    boolean toggle() { return switch (this) { case BOLD, ITALIC, BULLETS, NUMBERS, CONTENTS, LINES, ACTIVE_LINE -> true; default -> false; }; }
+    boolean toggle() { return switch (this) { case BOLD, ITALIC, BULLETS, NUMBERS, CONTENTS, LINES, ACTIVE_LINE, SOURCE -> true; default -> false; }; }
 
     boolean active(DocView view) {
         var s = view.model.state();
@@ -70,6 +71,7 @@ public enum EditorAction {
             case CONTENTS -> view.toc != null && view.toc.showing();
             case LINES -> view.lineNumbers();
             case ACTIVE_LINE -> view.activeLine();
+            case SOURCE -> view.sourceMode();
             default -> false;
         };
     }
@@ -83,5 +85,5 @@ public enum EditorAction {
     }
 
     /** Whether the focus goes back to the text after the button is clicked. */
-    boolean refocus() { return this != STYLE && this != CONTENTS && this != FIND; }
+    boolean refocus() { return this != STYLE && this != CONTENTS && this != FIND && this != SOURCE; }
 }

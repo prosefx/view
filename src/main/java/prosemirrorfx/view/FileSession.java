@@ -48,6 +48,7 @@ public final class FileSession {
     public void open(Path p) {
         saveIfDirty();
         path = p.toAbsolutePath();
+        view.setBaseDirectory(path.getParent());
         loading = true;
         try {
             var text = Files.exists(path) ? Files.readString(path, StandardCharsets.UTF_8) : "";

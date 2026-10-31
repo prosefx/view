@@ -36,6 +36,9 @@ public final class DocView extends StackPane {
     final Folds folds = new Folds();
     final FoldControls foldControls = new FoldControls(this, front);
     final CodeBoxes codeBoxes = new CodeBoxes(this, back, front);
+    final SpanBoxes spanBoxes = new SpanBoxes(back);
+    final SourceMode source = new SourceMode(this);
+    java.util.function.Consumer<String> linkHandler = Links::browse;
     final ReadOnlyObjectWrapper<Set<String>> foldedKeys = new ReadOnlyObjectWrapper<>(Set.of());
     boolean numbered;
     /** Set by the TOC when it is used: the next reveal puts the caret line near the top. */
@@ -75,7 +78,7 @@ public final class DocView extends StackPane {
         scroll.setFocusTraversable(false);
         scroll.getStyleClass().add("pm-scroll");
         findBar = new FindBar(this);
-        getChildren().addAll(scroll, findBar);
+        getChildren().addAll(scroll, source.area, findBar);
         getStylesheets().add(DocView.class.getResource("editor.css").toExternalForm());
         setFocusTraversable(true);
         new EditorKeys(this);
@@ -107,6 +110,7 @@ public final class DocView extends StackPane {
             var style = t.style();
             scroll.setStyle(style);
             findBar.setStyle(style);
+            source.area.setStyle(style);
             caretLayer.apply(t);
             live.apply(t);
             markLayer.apply(t);
@@ -135,6 +139,32 @@ public final class DocView extends StackPane {
 
     /** Whether line numbers are shown, for a toolbar button that shows it. */
     public javafx.beans.property.ReadOnlyBooleanProperty lineNumbersProperty() { return lineNumbersShown.getReadOnlyProperty(); }
+
+    /** Edit source: the document as its Markdown text in a plain text area, and back. Like the line numbers, a control of the editor itself, so every host has it. */
+    public void setSourceMode(boolean on) { source.set(on); }
+
+    /**
+     * What to do with an address followed by Ctrl+click or Ctrl+Enter: web and mail addresses open in the system's own program until
+     * this is set; the handler also receives relative paths and anything else written as a link, which only the host knows how to open.
+     */
+    public void setLinkHandler(java.util.function.Consumer<String> handler) { linkHandler = handler == null ? Links::browse : handler; }
+
+    /** Ctrl+Enter: follows the link or footnote at the caret, else switches the task box of the item the caret is in. False when there is neither. */
+    public boolean activate() {
+        var head = model.state().getSelection().getHead();
+        if (Links.activate(this, head)) return true;
+        var tb = positions == null || positions.textblocks.isEmpty() ? null : positions.at(head);
+        if (tb == null || !Tasks.is(tb)) return false;
+        Tasks.toggle(this, tb);
+        return true;
+    }
+
+    public boolean sourceMode() { return source.active(); }
+
+    /** In source mode the keyboard belongs to the text area. */
+    @Override public void requestFocus() { if (source.active()) source.area.requestFocus(); else super.requestFocus(); }
+
+    public javafx.beans.property.ReadOnlyBooleanProperty sourceModeProperty() { return source.on.getReadOnlyProperty(); }
 
     /** Highlight the whole block holding the caret, gently. */
     public void setActiveLine(boolean on) {
@@ -189,6 +219,17 @@ public final class DocView extends StackPane {
     public void setTheme(Theme t) { theme.set(t); }
 
     public Theme theme() { return theme.get(); }
+
+    /** The folder that a relative image path is read against, normally the folder of the open file. Set it before loading the text. */
+    java.nio.file.Path baseDirectory;
+    boolean remoteImages;
+
+    public void setBaseDirectory(java.nio.file.Path dir) { baseDirectory = dir; }
+
+    public java.nio.file.Path baseDirectory() { return baseDirectory; }
+
+    /** Allow pictures at http(s) addresses to be fetched. Off by default: opening a file should not contact anyone. */
+    public void setRemoteImages(boolean on) { remoteImages = on; }
 
     public javafx.beans.property.ObjectProperty<Theme> themeProperty() { return theme; }
 
@@ -435,6 +476,7 @@ public final class DocView extends StackPane {
         active.paint(positions);
         foldControls.paint(views, folds);
         codeBoxes.paint(positions, model.state().getSelection());
+        spanBoxes.paint(positions);
         markLayer.paint(marks(), positions, live);
         live.paint(positions, caretLayer, page.getWidth());
         if (followReading) revealReading();
@@ -565,6 +607,26 @@ public final class DocView extends StackPane {
     public void goToSource(int line, int column) { model.select(prosemirrorfx.core.pm.Pm.cursor(model.state().getDoc(), sourceMap().docPosition(line, column))); }
 
     public void goToLine(int line) { goToSource(line, 0); }
+
+    /**
+     * Moves the caret to the next (direction > 0) or previous comment, a paragraph starting `>>` (see Comments), and
+     * scrolls to it; past the last it wraps to the first. False when the text has no comment.
+     */
+    public boolean jumpComment(int direction) {
+        var doc = model.state().getDoc();
+        var spans = new ArrayList<int[]>();
+        doc.descendants((n, pos, parent, index) -> {
+            if (n.isTextblock() && Comments.kind(n.getTextContent()) != null) spans.add(new int[]{pos + 1, pos + 1 + n.getContent().getSize()});
+            return !n.isTextblock();
+        });
+        if (spans.isEmpty()) return false;
+        var head = model.state().getSelection().getHead();
+        var to = direction >= 0
+            ? spans.stream().filter(s -> s[0] > head).findFirst().orElse(spans.getFirst())
+            : spans.reversed().stream().filter(s -> s[1] < head).findFirst().orElse(spans.getLast());
+        model.select(prosemirrorfx.core.pm.Pm.cursor(doc, to[0]));
+        return true;
+    }
 
     public void setCaretSourceOffset(int offset) { model.select(prosemirrorfx.core.pm.Pm.cursor(model.state().getDoc(), sourceMap().docPositionAtOffset(offset))); }
 

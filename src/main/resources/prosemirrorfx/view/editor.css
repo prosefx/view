@@ -4,7 +4,7 @@
     -pm-bg: #FFFFFF; -pm-panel: #FAFBFC; -pm-text: #172B4D; -pm-muted: #5E6C84; -pm-interim: #8993A4;
     -pm-code: #403294; -pm-link: #0052CC; -pm-line: #DFE1E6; -pm-border: #C1C7D0; -pm-active-line: #F1F4F9;
     -pm-hover: #EBECF0; -pm-handle: #6B778C; -pm-select: #DEEBFF; -pm-select-focus: #4C9AFF;
-    -pm-code-bg: #F4F5F7; -pm-code-border: #DFE1E6;
+    -pm-code-bg: #F4F5F7; -pm-code-border: #DFE1E6; -pm-highlight: rgba(255,214,0,0.38);
 }
 
 .pm-scroll, .pm-scroll > .viewport { -fx-background-color: -pm-bg; }
@@ -102,3 +102,35 @@
 
 /* The three find options beside the find box. */
 .pm-find .pm-option { -fx-font-family: "Segoe UI"; -fx-font-size: 11px; -fx-padding: 2 5; }
+
+/* ^^highlight^^ and ~~strike~~. The highlight is a band drawn behind the text (SpanBoxes); the strike is a line through it. */
+.pm-highlight-box { -fx-background-color: -pm-highlight; -fx-background-radius: 2; }
+.pm-text.strike { -fx-strikethrough: true; -fx-fill: -pm-muted; }
+
+/* The `>>` of a comment, drawn as one glyph: the user's as a big angle (like a terminal prompt), the assistant's as a bullet. */
+.pm-text.pm-comment-glyph { -fx-font-size: 1.25em; -fx-font-weight: bold; }
+.pm-text.pm-comment-glyph.pm-comment-user { -fx-fill: rgba(224,140,0,1); }
+.pm-text.pm-comment-glyph.pm-comment-ai { -fx-fill: rgba(40,120,235,1); -fx-font-size: 1em; }
+
+/* A paragraph that is only a picture: its `![alt](path)` source is a quiet caption above the picture. */
+.pm-image-only .pm-text { -fx-font-size: 0.8em; -fx-fill: -pm-muted; }
+
+/* Plain-text Markdown given a look: a rule, a quote, and task boxes. */
+.pm-p.pm-rule { -fx-border-color: transparent transparent -pm-border transparent; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 6 0; }
+.pm-rule .pm-text { -fx-fill: -pm-interim; -fx-font-size: 0.7em; }
+.pm-p.pm-quote { -fx-border-color: -pm-border; -fx-border-width: 0 0 0 3; -fx-padding: 2 0 2 10; }
+.pm-quote .pm-text { -fx-fill: -pm-muted; }
+.pm-text.pm-task-box { -fx-font-size: 1.15em; -fx-fill: -pm-link; }
+.pm-task-done .pm-text { -fx-fill: -pm-muted; }
+.pm-task-done .pm-text.pm-task-box { -fx-fill: -pm-link; }
+
+/* Edit source: the Markdown text in a plain text area, in the editor's own colours. */
+.pm-source { -fx-font-family: "Consolas"; -fx-font-size: 14px; -fx-control-inner-background: -pm-bg; -fx-text-fill: -pm-text; -fx-background-color: -pm-bg; -fx-background-insets: 0; -fx-padding: 8 16; }
+.pm-source .content { -fx-background-color: -pm-bg; }
+
+/* Links, footnotes and task boxes can be followed or switched (Ctrl+click, Ctrl+Enter; a click on a box). */
+.pm-text.link, .pm-text.pm-autolink, .pm-text.footnote, .pm-text.pm-task-box { -fx-cursor: hand; }
+.pm-text.pm-autolink { -fx-fill: -pm-link; -fx-underline: true; }
+.pm-text.footnote { -fx-fill: -pm-link; -fx-font-size: 0.8em; }
+.pm-p.pm-footnote-def .pm-text { -fx-font-size: 0.88em; -fx-fill: -pm-muted; }
+.pm-p.pm-footnote-def { -fx-padding: 0 0 0 4; }

@@ -46,9 +46,12 @@ final class DocRenderer {
             flow.getStyleClass().addAll("pm-comment", comment);
             VBox.setMargin(flow, new javafx.geometry.Insets(2, 0, 2, indent * 7.5));
         } else if (indent > 0) flow.setStyle("-fx-padding: 0 0 0 " + indent * 0.5 + "em;");
-        flow.getChildren().setAll(runs(node));
+        var runs = runs(node);
+        flow.getChildren().setAll(comment != null ? Decor.comment(runs, comment) : Code.isBlock(node) ? runs : Decor.apply(flow, node, topLevel, runs));
+        if (!Code.isBlock(node)) Images.attach(flow, node);
         return new BlockView(node, flow, null, flow, null, List.of(), start);
     }
+
 
     static String styleClass(Node textblock) {
         return textblock.getType() == HEADING ? "pm-h" + intAttr(textblock, "level") : "pm-p";
@@ -67,7 +70,7 @@ final class DocRenderer {
             texts.add(t);
         }
         if (texts.isEmpty()) texts.add(text("", List.of()));
-        return texts;
+        return Code.isBlock(textblock) ? texts : Links.split(texts);
     }
 
     static Text text(Node inline) {
