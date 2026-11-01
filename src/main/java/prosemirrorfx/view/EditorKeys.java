@@ -123,6 +123,7 @@ final class EditorKeys {
         if (!(tb.flow instanceof Table.TableFlow)) return false;
         var to = Table.nextCell(tb, head - tb.start, dir);
         if (to >= 0) moveTo(tb.start + to, false);
+        else if (dir > 0) addRow(tb, Positions.end(tb));
         return true;
     }
 
@@ -130,6 +131,13 @@ final class EditorKeys {
     boolean tableEnter(int head) {
         var tb = view.positions.at(head);
         if (!(tb.flow instanceof Table.TableFlow) || !view.model.state().getSelection().getEmpty()) return false;
+        // at the very end of the table: a plain new line (Commands.lineInTable), so a row can be typed as text and an empty line ends the table
+        if (head == Positions.end(tb)) return false;
+        return addRow(tb, head);
+    }
+
+    /** A new empty row (see Table.newRow), the caret in its first cell. */
+    boolean addRow(BlockView tb, int head) {
         var row = Table.newRow(tb, head - tb.start);
         var at = tb.start + row.at();
         var tr = view.model.state().getTr();

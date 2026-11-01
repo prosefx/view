@@ -177,6 +177,13 @@ final class Table {
         return current > 0 ? starts.get(current - 1) : -1;
     }
 
+    /** True when offset is on the separator row (the second line). */
+    static boolean onSeparator(BlockView tb, int offset) {
+        var lines = Code.lines(tb.node);
+        var start = lines.getFirst().length() + 1;
+        return lines.size() > 1 && offset >= start && offset <= start + lines.get(1).length();
+    }
+
     /** An empty row to insert: at offset (the end of a line, before which a line break goes), its text, and where in it the caret goes. */
     record Row(int at, String text, int caret) {}
 

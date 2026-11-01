@@ -16,6 +16,9 @@ final class TableGrid {
 
     final Pane back;
     final List<Path> pool = new ArrayList<>();
+    final List<javafx.scene.layout.Region> heads = new ArrayList<>();
+    // the header row's box, in the back layer, set by lines()
+    Bounds head;
 
     TableGrid(Pane back) { this.back = back; }
 
@@ -24,10 +27,14 @@ final class TableGrid {
         for (var tb : positions.textblocks) {
             if (!(tb.flow instanceof Table.TableFlow)) continue;
             var path = path(slot++);
+            head = null;
             path.getElements().setAll(lines(tb));
             path.setVisible(true);
+            var bg = head(slot - 1);
+            bg.setVisible(head != null);
+            if (head != null) bg.resizeRelocate(head.getMinX(), head.getMinY(), head.getWidth(), head.getHeight());
         }
-        for (var k = slot; k < pool.size(); k++) pool.get(k).setVisible(false);
+        for (var k = slot; k < pool.size(); k++) { pool.get(k).setVisible(false); heads.get(k).setVisible(false); }
     }
 
     List<PathElement> lines(BlockView tb) {
@@ -59,6 +66,11 @@ final class TableGrid {
         var right = xs.isEmpty() ? left : xs.getLast();
         if (!Code.lines(tb.node).getFirst().strip().endsWith("|"))
             for (var line : text) right = Math.max(right, line.bounds().getMaxX() + Table.PAD);
+        if (tops.size() > 1) {
+            var a = back.sceneToLocal(flow.localToScene(left, tops.get(0)));
+            var b = back.sceneToLocal(flow.localToScene(right, tops.get(1)));
+            head = new BoundingBox(a.getX(), a.getY(), b.getX() - a.getX(), b.getY() - a.getY());
+        }
         var out = new ArrayList<PathElement>();
         for (var y : tops) line(out, flow, left, y, right, y);
         line(out, flow, left, bottom, right, bottom);
@@ -74,6 +86,18 @@ final class TableGrid {
         // half-pixel positions give crisp one-pixel lines
         out.add(new MoveTo(Math.round(a.getX()) + 0.5, Math.round(a.getY()) + 0.5));
         out.add(new LineTo(Math.round(b.getX()) + 0.5, Math.round(b.getY()) + 0.5));
+    }
+
+    javafx.scene.layout.Region head(int slot) {
+        while (heads.size() <= slot) {
+            var r = new javafx.scene.layout.Region();
+            r.getStyleClass().add("pm-table-head-bg");
+            r.setManaged(false);
+            heads.add(r);
+            // behind the lines
+            back.getChildren().add(0, r);
+        }
+        return heads.get(slot);
     }
 
     Path path(int slot) {

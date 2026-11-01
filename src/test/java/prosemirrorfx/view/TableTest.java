@@ -137,6 +137,54 @@ class TableTest {
         assertEquals("a | b\n---|---\n  |\nx | y\n", Lossless.write(fx(() -> view.model().state().getDoc())));
     }
 
+    void caretAt(int pos) { fx(() -> { view.requestFocus(); view.model().select(prosemirrorfx.core.pm.Pm.cursor(view.model().state().getDoc(), pos)); return null; }); pulse(); }
+
+    int head() { return fx(() -> view.model().state().getSelection().getHead()); }
+
+    @Test void upFromTheFirstRowReachesTheHeaderAndDownComesBack() {
+        open("| Name | Count |\n|---|---:|\n| apples | 3 |\n| pears | 12 |\n");
+        var text = "| Name | Count |\n|---|---:|\n| apples | 3 |";
+        // the caret's own x (headless, the drawn caret does not follow a selection set without focus)
+        var x = fx(() -> { var tb = block(0); return tb.flow.localToScene(Positions.caretRect(tb, text.indexOf("apples") + 2).getMinX(), 0).getX(); });
+        var up = fx(() -> Motion.vertical(view.positions, 1 + text.indexOf("apples") + 2, -1, x)) - 1;
+        assertTrue(up < "| Name | Count |".length(), "on the header row, was " + up);
+        var off = fx(() -> Motion.vertical(view.positions, 1 + up, 1, x)) - 1;
+        assertTrue(off > text.indexOf("| apples") && off < text.length(), "back on the apples row, was " + off);
+    }
+
+    @Test void tabInTheLastCellAddsARowAndEnterAtTheVeryEndIsAPlainLine() {
+        open("| a | b |\n|---|---|\n| x | y |\n");
+        caretAt(1 + "| a | b |\n|---|---|\n| x | y".length());
+        key(javafx.scene.input.KeyCode.TAB);
+        fx(() -> { view.model().type("z"); return null; });
+        assertEquals("| a | b |\n|---|---|\n| x | y |\n| z |  |\n", Lossless.write(fx(() -> view.model().state().getDoc())));
+        open("| a | b |\n|---|---|\n| x | y |\n");
+        caretAt(1 + "| a | b |\n|---|---|\n| x | y |".length());
+        key(javafx.scene.input.KeyCode.ENTER);
+        fx(() -> { view.model().type("| p | q |"); return null; });
+        assertEquals("| a | b |\n|---|---|\n| x | y |\n| p | q |\n", Lossless.write(fx(() -> view.model().state().getDoc())));
+    }
+
+    @Test void theTableAndCodeBlockCommandsWriteMarkdown() {
+        open("before\n");
+        caretAt(1 + "before".length());
+        fx(() -> view.model().run(prosemirrorfx.core.commands.Commands.insertTable(2, 3)));
+        assertEquals("before\n\n| Column 1 | Column 2 | Column 3 |\n|---|---|---|\n|  |  |  |\n|  |  |  |\n", Lossless.write(fx(() -> view.model().state().getDoc())));
+        assertEquals("Column 1", fx(() -> { var s = view.model().state().getSelection(); return view.model().state().getDoc().textBetween(s.getFrom(), s.getTo(), (String) null, (String) null); }));
+        pulse();
+        assertInstanceOf(Table.TableFlow.class, block(1).flow);
+        open("some code\n");
+        caretAt(3);
+        fx(() -> view.model().run(prosemirrorfx.core.commands.Commands::codeBlock));
+        assertEquals("```\nsome code\n```\n", Lossless.write(fx(() -> view.model().state().getDoc())));
+    }
+
+    @Test void theHeaderRowHasABackground() {
+        open(TABLE);
+        var bg = fx(() -> view.tableGrid.heads.getFirst());
+        assertTrue(fx(() -> bg.isVisible() && bg.getHeight() > 5 && bg.getWidth() > 50));
+    }
+
     @Test void theGridIsDrawn() {
         open(TABLE);
         var grid = fx(() -> view.tableGrid.pool);

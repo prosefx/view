@@ -1,6 +1,6 @@
 /* Colour tokens. These are the light defaults; view.setTheme(Theme) sets the same names inline, which beats these.
    The caret, selection, find shading and line numbers are drawn in code and take their colours from the Theme as well. */
-.pm-view, .pm-toolbar, .pm-statusbar, .pm-toc {
+.pm-view, .pm-toolbar, .pm-statusbar, .pm-toc, .pm-table-picker {
     -pm-bg: #FFFFFF; -pm-panel: #FAFBFC; -pm-text: #172B4D; -pm-muted: #5E6C84; -pm-interim: #8993A4;
     -pm-code: #403294; -pm-link: #0052CC; -pm-line: #DFE1E6; -pm-border: #C1C7D0; -pm-active-line: #F1F4F9;
     -pm-hover: #EBECF0; -pm-handle: #6B778C; -pm-select: #DEEBFF; -pm-select-focus: #4C9AFF;
@@ -109,6 +109,11 @@
 .pm-p.pm-table { -fx-padding: 4 0 4 0; }
 .pm-text.pm-table-head { -fx-font-weight: bold; }
 .pm-text.pm-table-sep { -fx-font-size: 1px; -fx-fill: transparent; }
+.pm-table-picker { -fx-background-color: -pm-bg; -fx-border-color: -pm-border; -fx-border-radius: 4; -fx-background-radius: 4; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 8, 0, 0, 2); }
+.pm-table-picker-cell { -fx-border-color: -pm-border; -fx-background-color: -pm-bg; }
+.pm-table-picker-cell:chosen { -fx-background-color: -pm-select; -fx-border-color: -pm-link; }
+.pm-table-picker-label { -fx-text-fill: -pm-text; }
+.pm-table-head-bg { -fx-background-color: -pm-code-bg; }
 .pm-table-grid { -fx-stroke: -pm-border; -fx-stroke-width: 1; -fx-fill: transparent; }
 .pm-text.strike { -fx-strikethrough: true; -fx-fill: -pm-muted; }
 

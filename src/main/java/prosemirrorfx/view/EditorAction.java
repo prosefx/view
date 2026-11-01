@@ -3,6 +3,7 @@ package prosemirrorfx.view;
 import java.util.function.*;
 import javafx.scene.Node;
 import prosemirrorfx.core.commands.*;
+import prosemirrorfx.core.schema.EditorSchema;
 
 import static prosemirrorfx.core.commands.Commands.*;
 import static prosemirrorfx.core.schema.EditorSchema.*;
@@ -19,6 +20,11 @@ public enum EditorAction {
     STYLE("Paragraph style", "Ctrl+Alt+0..6", null, (BiConsumer<DocView, Node>) BlockMenu::open),
     BOLD("Bold", "Ctrl+B", "format_bold", Commands.bold),
     ITALIC("Italic", "Ctrl+I", "format_italic", Commands.italic),
+    STRIKE("Strikethrough (~~text~~)", "", "format_strikethrough", Basic.toggleMark(EditorSchema.STRIKE)),
+    HIGHLIGHT("Highlight (^^text^^)", "", "border_color", Basic.toggleMark(EditorSchema.HIGHLIGHT)),
+    CODE("Inline code (`text`)", "", "code", Basic.toggleMark(EditorSchema.CODE)),
+    CODE_BLOCK("Code block (```)", "", "data_object", (Command) Commands::codeBlock),
+    TABLE("Table: choose rows and columns", "", "table_chart", (BiConsumer<DocView, Node>) TablePicker::open),
     BULLETS("Bulleted list", "Ctrl+Shift+8", "format_list_bulleted", Commands.bulletList),
     NUMBERS("Numbered list", "Ctrl+Shift+7", "format_list_numbered", Commands.orderedList),
     OUTDENT("Decrease indent", "Shift+Tab", "format_indent_decrease", Commands.outdent),
@@ -29,7 +35,7 @@ public enum EditorAction {
     CONTENTS("Contents", "", "toc", (BiConsumer<DocView, Node>) (view, from) -> { if (view.toc != null) view.toc.toggle(); }),
     LINES("Line numbers", "", "123", (BiConsumer<DocView, Node>) (view, from) -> view.setLineNumbers(!view.lineNumbers())),
     ACTIVE_LINE("Highlight current line", "", "highlight", (BiConsumer<DocView, Node>) (view, from) -> view.setActiveLine(!view.activeLine())),
-    SOURCE("Edit source (the Markdown text)", "", "code", (BiConsumer<DocView, Node>) (view, from) -> view.setSourceMode(!view.sourceMode()));
+    SOURCE("Edit source (the Markdown text)", "", "notes", (BiConsumer<DocView, Node>) (view, from) -> view.setSourceMode(!view.sourceMode()));
 
     public final String label, shortcut, icon;
     final Command command;
@@ -59,13 +65,16 @@ public enum EditorAction {
     boolean available(DocView view) { return this != CONTENTS || view.toc != null; }
 
     /** Toggle buttons: pressed when the caret or selection already has it. */
-    boolean toggle() { return switch (this) { case BOLD, ITALIC, BULLETS, NUMBERS, CONTENTS, LINES, ACTIVE_LINE, SOURCE -> true; default -> false; }; }
+    boolean toggle() { return switch (this) { case BOLD, ITALIC, STRIKE, HIGHLIGHT, CODE, BULLETS, NUMBERS, CONTENTS, LINES, ACTIVE_LINE, SOURCE -> true; default -> false; }; }
 
     boolean active(DocView view) {
         var s = view.model.state();
         return switch (this) {
             case BOLD -> markActive(s, STRONG);
             case ITALIC -> markActive(s, EM);
+            case STRIKE -> markActive(s, EditorSchema.STRIKE);
+            case HIGHLIGHT -> markActive(s, EditorSchema.HIGHLIGHT);
+            case CODE -> markActive(s, EditorSchema.CODE);
             case BULLETS -> inList(s, BULLET_LIST);
             case NUMBERS -> inList(s, ORDERED_LIST);
             case CONTENTS -> view.toc != null && view.toc.showing();
@@ -79,11 +88,11 @@ public enum EditorAction {
     /** Greyed out when it would do nothing here (nothing to undo, no list to outdent, ...). */
     boolean enabled(DocView view) {
         return switch (this) {
-            case UNDO, REDO, OUTDENT, INDENT -> command.applies(view.model.state());
+            case UNDO, REDO, OUTDENT, INDENT, CODE_BLOCK -> command.applies(view.model.state());
             default -> true;
         };
     }
 
     /** Whether the focus goes back to the text after the button is clicked. */
-    boolean refocus() { return this != STYLE && this != CONTENTS && this != FIND && this != SOURCE; }
+    boolean refocus() { return this != STYLE && this != CONTENTS && this != FIND && this != SOURCE && this != TABLE; }
 }

@@ -38,8 +38,10 @@ final class Motion {
         var lines = tb.flow.getLayoutInfo().getTextLines(false);
         var li = lineOf(lines.stream().toList(), head - tb.start);
         TextLineInfo target;
-        if (dir < 0 && li > 0) target = lines.get(li - 1);
-        else if (dir > 0 && li < lines.size() - 1) target = lines.get(li + 1);
+        // a table's separator row is a hairline: pass over it, never onto it (a hit at its middle lands in the row below, so Up got stuck there)
+        var step = tb.flow instanceof Table.TableFlow && li + dir >= 0 && li + dir < lines.size() && Table.onSeparator(tb, lines.get(li + dir).start()) ? 2 : 1;
+        if (dir < 0 && li - step >= 0) target = lines.get(li - step);
+        else if (dir > 0 && li + step < lines.size()) target = lines.get(li + step);
         else {
             var j = i + dir;
             if (j < 0) return p.textblocks.getFirst().start;

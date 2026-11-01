@@ -17,17 +17,20 @@ import static prosemirrorfx.core.commands.Commands.blockLevel;
 public final class Toolbar {
 
     /** A group ends after these; CONTENTS starts the right-hand side. */
-    static final Set<EditorAction> GROUP_ENDS = EnumSet.of(EditorAction.REDO, EditorAction.STYLE, EditorAction.ITALIC,
+    static final Set<EditorAction> GROUP_ENDS = EnumSet.of(EditorAction.REDO, EditorAction.STYLE, EditorAction.CODE, EditorAction.TABLE,
             EditorAction.NUMBERS, EditorAction.INDENT, EditorAction.CLEAR);
 
-    public static Node of(DocView view) {
+    public static Node of(DocView view) { return of(view, Set.of()); }
+
+    /** The toolbar without the given actions, for a host that offers them itself (a host's own source view, say). */
+    public static Node of(DocView view, Set<EditorAction> omit) {
         var bar = new HBox(2);
         bar.getStyleClass().add("pm-toolbar");
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStylesheets().add(Toolbar.class.getResource("editor.css").toExternalForm());
         var controls = new EnumMap<EditorAction, ButtonBase>(EditorAction.class);
         for (var a : EditorAction.values()) {
-            if (!a.available(view)) continue;
+            if (!a.available(view) || omit.contains(a)) continue;
             if (a == EditorAction.CONTENTS || (a == EditorAction.LINES && !EditorAction.CONTENTS.available(view))) {
                 var spacer = new Region();
                 HBox.setHgrow(spacer, Priority.ALWAYS);

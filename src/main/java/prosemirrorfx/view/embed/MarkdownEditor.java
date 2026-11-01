@@ -51,6 +51,9 @@ public final class MarkdownEditor {
     /** A toolbar for this editor, to place above it. */
     public javafx.scene.Node toolbar() { return Toolbar.of(view); }
 
+    /** A toolbar without the given actions, for a host that offers them itself (its own source view, say). */
+    public javafx.scene.Node toolbar(prosemirrorfx.view.EditorAction... omit) { return Toolbar.of(view, java.util.Set.of(omit)); }
+
     /** A status line for this editor, to place below it. */
     public javafx.scene.Node statusBar() { return StatusBar.of(view); }
 
