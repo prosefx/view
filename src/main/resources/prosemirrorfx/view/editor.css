@@ -115,6 +115,9 @@
 .pm-table-picker-label { -fx-text-fill: -pm-text; }
 .pm-table-head-bg { -fx-background-color: -pm-code-bg; }
 .pm-table-grid { -fx-stroke: -pm-border; -fx-stroke-width: 1; -fx-fill: transparent; }
+/* a table wider than the page scrolls sideways in its own pane (Table.TableScroll), see-through so the lines behind show */
+.pm-table-scroll, .pm-table-scroll > .viewport, .pm-table-scroll > .corner { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0; -fx-border-width: 0; }
+.pm-table-scroll:focused { -fx-background-color: transparent; }
 .pm-text.strike { -fx-strikethrough: true; -fx-fill: -pm-muted; }
 
 /* The `>>` of a comment, drawn as one glyph: the user's as a big angle (like a terminal prompt), the assistant's as a bullet. */

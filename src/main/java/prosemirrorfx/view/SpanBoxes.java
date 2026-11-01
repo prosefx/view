@@ -23,7 +23,9 @@ final class SpanBoxes {
                 var size = c.getNodeSize();
                 if (c.isText() && HIGHLIGHT.isInSet(c.getMarks()) != null)
                     for (var r : tb.flow.getLayoutInfo().getSelectionGeometry(offset, offset + size, true)) {
-                        var o = back.sceneToLocal(tb.flow.localToScene(new BoundingBox(r.getMinX(), r.getMinY(), r.getWidth(), r.getHeight())));
+                        // in a table that scrolls sideways, only the part that can be seen
+                        var o = Table.within(back.sceneToLocal(tb.flow.localToScene(new BoundingBox(r.getMinX(), r.getMinY(), r.getWidth(), r.getHeight()))), Table.visible(tb, back));
+                        if (o == null) continue;
                         var box = box(slot++);
                         box.setVisible(true);
                         box.resizeRelocate(o.getMinX() - 1, o.getMinY() + 1, o.getWidth() + 2, o.getHeight() - 2);

@@ -461,6 +461,12 @@ public final class DocView extends StackPane {
     /** The table of contents attached to this editor, or null. */
     public Toc toc() { return toc; }
 
+    /** A table that scrolls sideways repaints its lines, bands and caret when it moves. */
+    void hookTables() {
+        for (var tb : positions.textblocks)
+            if (tb.fx instanceof Table.TableScroll s && s.getProperties().putIfAbsent("pm-hooked", true) == null) s.hvalueProperty().addListener(o -> invalidate());
+    }
+
     void invalidate() {
         dirty = true;
         Platform.requestNextPulse();
@@ -494,6 +500,7 @@ public final class DocView extends StackPane {
         folds.layout(doc);
         folds.mark(views);
         positions = new Positions(views);
+        hookTables();
         placeInterim();
     }
 
@@ -502,6 +509,7 @@ public final class DocView extends StackPane {
         folds.layout(model.state().getDoc());
         folds.mark(views);
         positions = new Positions(views);
+        hookTables();
         codeBoxes.sync(positions, model.state().getSelection());
         placeInterim();
         publishFolded();
@@ -641,11 +649,26 @@ public final class DocView extends StackPane {
         var b = caretLayer.caretBounds;
         var viewH = scroll.getViewportBounds().getHeight();
         var range = page.getHeight() - viewH;
-        if (b == null || range <= 0) { revealAtTop = false; return; }
+        if (b == null || range <= 0) { revealAtTop = false; revealInTable(); return; }
         var top = scroll.getVvalue() * range;
         var target = revealAtTop ? b.getMinY() - 8 : b.getMinY() < top + 8 ? b.getMinY() - 8 : b.getMaxY() > top + viewH - 8 ? b.getMaxY() - viewH + 8 : top;
         scroll.setVvalue(Math.max(0, Math.min(1, target / range)));
         revealAtTop = false;
+        revealInTable();
+    }
+
+    /** In a table wider than the page, scrolls it sideways so the caret can be seen. */
+    void revealInTable() {
+        var head = model.state().getSelection().getHead();
+        var tb = positions.at(head);
+        if (!(tb.fx instanceof Table.TableScroll s)) return;
+        var viewW = s.getViewportBounds().getWidth();
+        var range = tb.flow.getWidth() - viewW;
+        if (range <= 0) return;
+        var x = Positions.caretRect(tb, head - tb.start).getMinX();
+        var left = s.getHvalue() * range;
+        var target = x < left + 8 ? x - 8 : x > left + viewW - 8 ? x - viewW + 8 : left;
+        s.setHvalue(Math.max(0, Math.min(1, target / range)));
     }
 
     double caretSceneX() { return caretLayer.caret.localToScene(0, 0).getX(); }

@@ -258,6 +258,42 @@ class TableTest {
         assertFalse(fx(() -> items.get(TableEdit.Op.COL_RIGHT.ordinal()).isDisable()));
     }
 
+    // ---- a table wider than the page
+
+    /** Pulses until the condition holds on the FX thread, at most 20. */
+    void settle(java.util.function.BooleanSupplier ok) {
+        // ViewKeysTest.pulse waits on its own stage's scene, not this one: poll instead, for up to 3 s
+        for (var i = 0; i < 60 && !fx(() -> ok.getAsBoolean()); i++) { pulse(); try { Thread.sleep(50); } catch (InterruptedException e) { throw new RuntimeException(e); } }
+    }
+
+    static final String WIDE = "| " + "word ".repeat(30) + "| " + "more ".repeat(30) + "|\n|---|---|\n| a | b |\n";
+
+    @Test void aWideTableKeepsEachRowOnOneLineAndScrollsSideways() {
+        open(WIDE);
+        var tb = block(0);
+        assertInstanceOf(Table.TableScroll.class, tb.fx);
+        // three rows (the separator a hairline): three lines, nothing wrapped
+        assertEquals(3, fx(() -> tb.flow.getLayoutInfo().getTextLines(false).size()));
+        var s = (Table.TableScroll) tb.fx;
+        assertTrue(fx(() -> tb.flow.getWidth() > s.getWidth()), "the table is wider than its pane");
+        assertTrue(fx(() -> s.overflows(-1)));
+        // the caret at the end of the long header brings it into view: the pane scrolls right
+        fx(() -> { view.model().select(prosemirrorfx.core.pm.Pm.cursor(view.model().state().getDoc(), Fixtures.posAfter(view.model().state().getDoc(), "more more |"))); return null; });
+        settle(() -> s.getHvalue() > 0.5);
+        assertTrue(fx(() -> s.getHvalue()) > 0.5, "scrolled to the caret: " + fx(() -> s.getHvalue()));
+        // and back to the first cell
+        fx(() -> { view.model().select(prosemirrorfx.core.pm.Pm.cursor(view.model().state().getDoc(), 2)); return null; });
+        settle(() -> s.getHvalue() < 0.1);
+        assertTrue(fx(() -> s.getHvalue()) < 0.1, "scrolled back: " + fx(() -> s.getHvalue()));
+    }
+
+    @Test void aNarrowTableHasNoScrollBarRoom() {
+        open(TABLE);
+        var s = (Table.TableScroll) block(1).fx;
+        assertFalse(fx(() -> s.overflows(-1)));
+        assertEquals(fx(() -> block(1).flow.getHeight()), fx(() -> s.getHeight()), 1.0);
+    }
+
     @Test void theGridIsDrawn() {
         open(TABLE);
         var grid = fx(() -> view.tableGrid.pool);

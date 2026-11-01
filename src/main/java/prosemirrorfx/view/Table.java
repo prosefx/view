@@ -250,6 +250,62 @@ final class Table {
         return new Row(end, text, lead ? 2 : 0);
     }
 
+    /** The height kept under a table for its scroll bar when it is wider than the page. */
+    static final double BAR = 14;
+
+    /**
+     * What holds a table on the page: a scroll pane whose content (the TableFlow) is never wrapped, so a table wider
+     * than the page keeps every row on one line and gets a scroll bar of its own, while a narrow one looks as before.
+     * The mouse wheel goes on scrolling the page; Shift+wheel (or a sideways wheel) scrolls the table. It never takes the
+     * keyboard focus, and the caret is brought into view inside it by DocView.revealCaret.
+     */
+    static final class TableScroll extends javafx.scene.control.ScrollPane {
+        TableScroll(TableFlow flow) {
+            super(flow);
+            getStyleClass().add("pm-table-scroll");
+            setFitToWidth(false);
+            setFitToHeight(false);
+            setHbarPolicy(ScrollBarPolicy.AS_NEEDED);
+            setVbarPolicy(ScrollBarPolicy.NEVER);
+            setFocusTraversable(false);
+            addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> {
+                if (Math.abs(e.getDeltaX()) >= Math.abs(e.getDeltaY())) return;
+                e.consume();
+                for (var p = getParent(); p != null; p = p.getParent())
+                    if (p instanceof javafx.scene.control.ScrollPane outer) { outer.fireEvent(e.copyFor(outer, outer)); return; }
+            });
+        }
+
+        boolean overflows(double width) {
+            var w = width < 0 ? getWidth() : width;
+            return w > 0 && getContent().prefWidth(-1) > w - snappedLeftInset() - snappedRightInset() + 0.5;
+        }
+
+        @Override protected double computePrefHeight(double width) {
+            return getContent().prefHeight(-1) + snappedTopInset() + snappedBottomInset() + (overflows(width) ? BAR : 0);
+        }
+
+        @Override protected double computeMinHeight(double width) { return computePrefHeight(width); }
+
+        // the page decides the width; a wide table must not widen the page
+        @Override protected double computePrefWidth(double height) { return 0; }
+
+        @Override protected double computeMinWidth(double height) { return 0; }
+    }
+
+    /** The part of the page where tb's text can be seen, in layer's coordinates: its scroll pane's box for a table, null for anything else. */
+    static javafx.geometry.Bounds visible(BlockView tb, javafx.scene.Node layer) {
+        return tb.fx instanceof TableScroll s ? layer.sceneToLocal(s.localToScene(s.getLayoutBounds())) : null;
+    }
+
+    /** a cut to within, or null when nothing of it is left; a unchanged when within is null. */
+    static javafx.geometry.Bounds within(javafx.geometry.Bounds a, javafx.geometry.Bounds within) {
+        if (within == null) return a;
+        var x1 = Math.max(a.getMinX(), within.getMinX());
+        var x2 = Math.min(a.getMaxX(), within.getMaxX());
+        return x2 <= x1 ? null : new javafx.geometry.BoundingBox(x1, a.getMinY(), x2 - x1, a.getHeight());
+    }
+
     /** The flow of a table: pipe widths are fitted before every measurement and layout. */
     static final class TableFlow extends Flow {
         List<Character> aligns = List.of();

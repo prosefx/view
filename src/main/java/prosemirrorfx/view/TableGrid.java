@@ -30,9 +30,13 @@ final class TableGrid {
             head = null;
             path.getElements().setAll(lines(tb));
             path.setVisible(true);
+            // a table wider than the page shows only what its scroll pane shows
+            var seen = Table.visible(tb, back);
+            path.setClip(seen == null ? null : new javafx.scene.shape.Rectangle(seen.getMinX(), seen.getMinY(), seen.getWidth(), seen.getHeight()));
             var bg = head(slot - 1);
-            bg.setVisible(head != null);
-            if (head != null) bg.resizeRelocate(head.getMinX(), head.getMinY(), head.getWidth(), head.getHeight());
+            var box = head == null ? null : Table.within(head, seen);
+            bg.setVisible(box != null);
+            if (box != null) bg.resizeRelocate(box.getMinX(), box.getMinY(), box.getWidth(), box.getHeight());
         }
         for (var k = slot; k < pool.size(); k++) { pool.get(k).setVisible(false); heads.get(k).setVisible(false); }
     }
