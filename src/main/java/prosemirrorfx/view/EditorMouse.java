@@ -24,6 +24,14 @@ final class EditorMouse {
         var state = view.model.state();
         var doc = state.getDoc();
         var tb = view.positions.at(pos);
+        // a right-click in a table: the caret goes there (unless it is inside a selection) and the table menu opens
+        if (e.isSecondaryButtonDown() && tb.flow instanceof Table.TableFlow) {
+            var sel = state.getSelection();
+            if (pos < sel.getFrom() || pos > sel.getTo()) view.model.select(Motion.select(state, pos, false));
+            TableMenu.open(view, e.getScreenX(), e.getScreenY());
+            e.consume();
+            return;
+        }
         if (e.getClickCount() == 1 && !e.isShiftDown() && e.isPrimaryButtonDown()) {
             // a click on a task box switches it; Ctrl+click on a link or a footnote follows it
             if (Tasks.onBox(view, e.getSceneX(), e.getSceneY())) { Tasks.toggle(view, tb); e.consume(); return; }

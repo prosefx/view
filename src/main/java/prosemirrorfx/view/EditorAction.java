@@ -24,7 +24,11 @@ public enum EditorAction {
     HIGHLIGHT("Highlight (^^text^^)", "", "border_color", Basic.toggleMark(EditorSchema.HIGHLIGHT)),
     CODE("Inline code (`text`)", "", "code", Basic.toggleMark(EditorSchema.CODE)),
     CODE_BLOCK("Code block (```)", "", "data_object", (Command) Commands::codeBlock),
-    TABLE("Table: choose rows and columns", "", "table_chart", (BiConsumer<DocView, Node>) TablePicker::open),
+    TABLE("Table: insert one, or in a table add and delete rows and columns", "", "table_chart", (BiConsumer<DocView, Node>) (view, from) -> {
+        if (TableMenu.tableAtCaret(view) == null) { TablePicker.open(view, from); return; }
+        var at = from.localToScreen(from.getLayoutBounds());
+        TableMenu.open(view, at.getMinX(), at.getMaxY() + 2);
+    }),
     BULLETS("Bulleted list", "Ctrl+Shift+8", "format_list_bulleted", Commands.bulletList),
     NUMBERS("Numbered list", "Ctrl+Shift+7", "format_list_numbered", Commands.orderedList),
     OUTDENT("Decrease indent", "Shift+Tab", "format_indent_decrease", Commands.outdent),

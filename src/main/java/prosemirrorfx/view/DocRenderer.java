@@ -39,6 +39,7 @@ final class DocRenderer {
         if (Table.is(node)) {
             var table = new Table.TableFlow();
             table.getStyleClass().addAll(styleClass(node), "pm-table");
+            table.aligns = Table.aligns(node);
             table.getChildren().setAll(Table.runs(runs(node)));
             return new BlockView(node, table, null, table, null, List.of(), start);
         }

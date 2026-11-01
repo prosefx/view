@@ -31,6 +31,8 @@ final class Table {
     static final class Pipe extends Region {
         final int line, col;
         final boolean lead;
+        /** Where in this pipe its column ends (fit sets it): the grid line goes at its left plus edge. */
+        double edge;
         Pipe(int line, int col, boolean lead) {
             this.line = line;
             this.col = col;
@@ -95,25 +97,37 @@ final class Table {
     }
 
     /** The width of the opening pipe, and the room after a column's widest cell. */
-    static final double LEAD = 6, PAD = 14;
+    static final double LEAD = 6, PAD = 14, RIGHT_GAP = 4;
 
     /**
      * Sets each pipe's width so that every column ends at the same x on every line: a column is as wide as its widest
      * cell (the separator row does not count) plus PAD. Called before the flow measures or lays itself out.
      */
-    static void fit(List<javafx.scene.Node> children) {
+    static void fit(List<javafx.scene.Node> children) { fit(children, List.of()); }
+
+    /**
+     * As above, with each column aligned as its separator cell says (l, c or r, see aligns): a cell's spare room goes
+     * after it (left), before it (right) or half each side (centre). The room before a cell is part of the pipe before
+     * it, so a pipe's width is the room after its own cell plus the room before the next one; its edge says where in it
+     * the column ends, for the grid lines.
+     */
+    static void fit(List<javafx.scene.Node> children, List<Character> aligns) {
+        // each line's cells in order: the pipe that closes each cell, and the cell's text width
+        var lines = new ArrayList<List<Pipe>>();
         var seg = new HashMap<Pipe, Double>();
+        var lead = new HashMap<Integer, Pipe>();
         var widest = new ArrayList<Double>();
-        var leadOnLine = new HashSet<Integer>();
         var w = 0.0;
+        lines.add(new ArrayList<>());
         for (var n : children) {
             if (n instanceof Text t) {
-                if (t.getText().equals("\n")) w = 0;
+                if (t.getText().equals("\n")) { w = 0; lines.add(new ArrayList<>()); }
                 else w += t.getLayoutBounds().getWidth();
             } else if (n instanceof Pipe p) {
-                if (p.lead) leadOnLine.add(p.line);
+                if (p.lead) lead.put(p.line, p);
                 else {
                     seg.put(p, w);
+                    lines.getLast().add(p);
                     if (p.line != 1) {
                         while (widest.size() <= p.col) widest.add(0.0);
                         widest.set(p.col, Math.max(widest.get(p.col), w));
@@ -123,14 +137,47 @@ final class Table {
             }
         }
         // a row without an opening pipe, in a table where other rows have one, starts its first column LEAD earlier
-        var mixed = !leadOnLine.isEmpty();
-        for (var n : children) {
-            if (!(n instanceof Pipe p)) continue;
-            var width = p.lead ? LEAD
-                    : (p.col < widest.size() ? widest.get(p.col) : seg.get(p)) + PAD - seg.get(p) + (mixed && p.col == 0 && !leadOnLine.contains(p.line) ? LEAD : 0);
-            width = Math.max(1, width);
-            if (p.getPrefWidth() != width) { p.setMinWidth(width); p.setPrefWidth(width); p.setMaxWidth(width); }
+        var mixed = !lead.isEmpty();
+        for (var l = 0; l < lines.size(); l++) {
+            var cells = lines.get(l);
+            double[] before = new double[cells.size()], after = new double[cells.size()];
+            for (var k = 0; k < cells.size(); k++) {
+                var p = cells.get(k);
+                var spare = (p.col < widest.size() ? widest.get(p.col) : seg.get(p)) - seg.get(p);
+                var a = l == 1 || p.col >= aligns.size() ? 'l' : aligns.get(p.col);
+                // the PAD of room after a cell moves with it: before a right-aligned cell, half each side of a centred one
+                before[k] = a == 'r' ? spare + PAD - RIGHT_GAP : a == 'c' ? (spare + PAD) / 2 : 0;
+                after[k] = spare + PAD - before[k];
+            }
+            var opening = lead.get(l);
+            if (opening != null) size(opening, LEAD + (cells.isEmpty() ? 0 : before[0]), 0);
+            for (var k = 0; k < cells.size(); k++) {
+                var p = cells.get(k);
+                var extra = mixed && p.col == 0 && opening == null ? LEAD : 0;
+                // without an opening pipe the first cell has nothing before it to hold its room: it stays left
+                if (k == 0 && opening == null) { after[0] += before[0]; before[0] = 0; }
+                size(p, after[k] + extra + (k + 1 < cells.size() ? before[k + 1] : 0), after[k] + extra);
+            }
         }
+    }
+
+    static void size(Pipe p, double width, double edge) {
+        width = Math.max(1, width);
+        p.edge = edge;
+        if (p.getPrefWidth() != width) { p.setMinWidth(width); p.setPrefWidth(width); p.setMaxWidth(width); }
+    }
+
+    /** Each column's alignment from the separator row: c for :---:, r for ---:, l otherwise. */
+    static List<Character> aligns(Node table) {
+        var sep = Code.lines(table).get(1).strip();
+        if (sep.startsWith("|")) sep = sep.substring(1);
+        if (sep.endsWith("|")) sep = sep.substring(0, sep.length() - 1);
+        var out = new ArrayList<Character>();
+        for (var cell : sep.split("\\|", -1)) {
+            var c = cell.strip();
+            out.add(c.startsWith(":") && c.endsWith(":") && c.length() > 1 ? 'c' : c.endsWith(":") ? 'r' : 'l');
+        }
+        return out;
     }
 
     /**
@@ -205,10 +252,11 @@ final class Table {
 
     /** The flow of a table: pipe widths are fitted before every measurement and layout. */
     static final class TableFlow extends Flow {
+        List<Character> aligns = List.of();
         TableFlow() { setSnapToPixel(false); }
-        @Override protected double computePrefHeight(double width) { fit(getChildren()); return super.computePrefHeight(width); }
-        @Override protected double computePrefWidth(double height) { fit(getChildren()); return super.computePrefWidth(height); }
-        @Override protected void layoutChildren() { fit(getChildren()); super.layoutChildren(); }
+        @Override protected double computePrefHeight(double width) { fit(getChildren(), aligns); return super.computePrefHeight(width); }
+        @Override protected double computePrefWidth(double height) { fit(getChildren(), aligns); return super.computePrefWidth(height); }
+        @Override protected void layoutChildren() { fit(getChildren(), aligns); super.layoutChildren(); }
     }
 
     private Table() {}

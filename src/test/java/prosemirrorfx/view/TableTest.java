@@ -62,7 +62,7 @@ class TableTest {
         open(TABLE);
         var tb = block(1);
         var ends = new TreeMap<Integer, List<Double>>();
-        fx(() -> { for (var p : pipes(tb)) if (!p.lead) ends.computeIfAbsent(p.col, k -> new ArrayList<>()).add(p.getBoundsInParent().getMaxX()); return null; });
+        fx(() -> { for (var p : pipes(tb)) if (!p.lead) ends.computeIfAbsent(p.col, k -> new ArrayList<>()).add(p.getBoundsInParent().getMinX() + p.edge); return null; });
         assertEquals(2, ends.size());
         for (var xs : ends.values()) {
             assertEquals(4, xs.size());
@@ -183,6 +183,79 @@ class TableTest {
         open(TABLE);
         var bg = fx(() -> view.tableGrid.heads.getFirst());
         assertTrue(fx(() -> bg.isVisible() && bg.getHeight() > 5 && bg.getWidth() > 50));
+    }
+
+    @Test void aRightAlignedColumnEndsItsCellsTogetherAndACentredOneCentresThem() {
+        open(TABLE);   // Count is ---: (right)
+        var tb = block(1);
+        // right: every cell's text ends where its closing pipe starts, at the same x on every row
+        var closers = fx(() -> pipes(tb).stream().filter(p -> !p.lead && p.col == 1 && p.line != 1).map(p -> p.getBoundsInParent().getMinX()).toList());
+        for (var x : closers) assertEquals(closers.getFirst(), x, 0.75, "right-aligned ends: " + closers);
+        open("| a | b |\n|:-:|---|\n| x | y |\n| a much longer cell | z |\n");
+        var t2 = block(0);
+        // centre: the short cell's room is split, so the pipe before it (the opening one) is wider than LEAD
+        var opening = fx(() -> pipes(t2).stream().filter(p -> p.lead && p.line == 2).findFirst().orElseThrow().getWidth());
+        assertTrue(opening > Table.LEAD + 5, "opening pipe holds half the room: " + opening);
+        assertEquals(List.of('c', 'l'), fx(() -> Table.aligns(t2.node)));
+        assertEquals(List.of('l', 'c', 'r'), Table.aligns(prosemirrorfx.markdown.Lossless.read("a | b | c\n--- | :---: | ---:\n").getFirstChild()));
+    }
+
+    // ---- adding and deleting rows and columns
+
+    String apply(String md, String caretAfter, TableEdit.Op op) {
+        open(md);
+        var tb = fx(() -> view.positions.textblocks.stream().filter(t -> t.flow instanceof Table.TableFlow).findFirst().orElseThrow());
+        var pos = fx(() -> Fixtures.posAfter(view.model().state().getDoc(), caretAfter));
+        assertTrue(fx(() -> TableEdit.apply(view, tb, pos - tb.start, op)), op + " applies");
+        pulse();
+        return Lossless.write(fx(() -> view.model().state().getDoc()));
+    }
+
+    static final String SMALL = "before\n\n| a | **b** |\n|---|---:|\n| x | y |\n\nafter\n";
+
+    @Test void columnsGoInLeftOrRightOfTheCaretsColumnWithTheSeparatorAndTheFormattingKept() {
+        assertEquals("before\n\n| a |  | **b** |\n|---|---|---:|\n| x |  | y |\n\nafter\n", apply(SMALL, "| a", TableEdit.Op.COL_RIGHT));
+        assertEquals("before\n\n|  | a | **b** |\n|---|---|---:|\n|  | x | y |\n\nafter\n", apply(SMALL, "| a", TableEdit.Op.COL_LEFT));
+        assertEquals("before\n\n| a | **b** |  |\n|---|---:|---|\n| x | y |  |\n\nafter\n", apply(SMALL, "| x | y", TableEdit.Op.COL_RIGHT));
+        assertEquals("a | b |  |\n---|---|---|\nx | y |  |\n", apply("a | b\n---|---\nx | y\n", "x | y", TableEdit.Op.COL_RIGHT));
+    }
+
+    @Test void aColumnIsDeletedWithItsPipeOnEveryLine() {
+        assertEquals("before\n\n| a |\n|---|\n| x |\n\nafter\n", apply(SMALL, "| x | y", TableEdit.Op.DELETE_COL));
+        assertEquals("before\n\n| **b** |\n|---:|\n| y |\n\nafter\n", apply(SMALL, "| a", TableEdit.Op.DELETE_COL));
+    }
+
+    @Test void rowsGoAboveOrBelowAndNeverBetweenTheHeaderAndTheSeparator() {
+        assertEquals("before\n\n| a | **b** |\n|---|---:|\n| x | y |\n|  |  |\n\nafter\n", apply(SMALL, "| x", TableEdit.Op.ROW_BELOW));
+        assertEquals("before\n\n| a | **b** |\n|---|---:|\n|  |  |\n| x | y |\n\nafter\n", apply(SMALL, "| x", TableEdit.Op.ROW_ABOVE));
+        assertEquals("before\n\n| a | **b** |\n|---|---:|\n|  |  |\n| x | y |\n\nafter\n", apply(SMALL, "| a", TableEdit.Op.ROW_ABOVE));
+    }
+
+    @Test void aBodyRowAndTheWholeTableCanBeDeletedButNotTheHeader() {
+        assertEquals("before\n\n| a | **b** |\n|---|---:|\n\nafter\n", apply(SMALL, "| x", TableEdit.Op.DELETE_ROW));
+        assertEquals("before\n\nafter\n", apply(SMALL, "| x", TableEdit.Op.DELETE_TABLE));
+        open(SMALL);
+        var tb = block(1);
+        var header = fx(() -> Fixtures.posAfter(view.model().state().getDoc(), "| a")) - tb.start;
+        assertFalse(fx(() -> TableEdit.allowed(tb, header, TableEdit.Op.DELETE_ROW)));
+        open("| only |\n|---|\n| one |\n");
+        assertFalse(fx(() -> TableEdit.allowed(block(0), 3, TableEdit.Op.DELETE_COL)));
+    }
+
+    @Test void undoTakesAColumnBackInOneStep() {
+        apply(SMALL, "| a", TableEdit.Op.COL_RIGHT);
+        fx(() -> view.model().run(prosemirrorfx.core.commands.Commands.undo));
+        assertEquals(SMALL, Lossless.write(fx(() -> view.model().state().getDoc())));
+    }
+
+    @Test void theMenuListsEveryActionAndGreysOutWhatCannotApply() {
+        open(SMALL);
+        var tb = block(1);
+        var header = fx(() -> Fixtures.posAfter(view.model().state().getDoc(), "| a")) - tb.start;
+        var items = fx(() -> TableMenu.menu(view, tb, header).getItems().stream().filter(i -> !(i instanceof javafx.scene.control.SeparatorMenuItem)).toList());
+        assertEquals(TableEdit.Op.values().length, items.size());
+        assertTrue(fx(() -> items.get(TableEdit.Op.DELETE_ROW.ordinal()).isDisable()));
+        assertFalse(fx(() -> items.get(TableEdit.Op.COL_RIGHT.ordinal()).isDisable()));
     }
 
     @Test void theGridIsDrawn() {

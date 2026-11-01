@@ -58,7 +58,7 @@ final class TableGrid {
         for (var n : flow.getChildren()) {
             if (!(n instanceof Table.Pipe p) || p.line != 0) continue;
             if (p.lead) left = p.getBoundsInParent().getMinX();
-            else xs.add(p.getBoundsInParent().getMaxX());
+            else xs.add(p.getBoundsInParent().getMinX() + p.edge);
         }
         var hasLead = flow.getChildren().stream().anyMatch(n -> n instanceof Table.Pipe p && p.line == 0 && p.lead);
         if (!hasLead) left -= Table.LEAD;

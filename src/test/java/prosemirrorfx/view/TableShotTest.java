@@ -8,13 +8,16 @@ import prosemirrorfx.markdown.Lossless;
 import static prosemirrorfx.view.ViewKeysTest.fx;
 import static prosemirrorfx.view.ViewKeysTest.pulse;
 
-/** A picture of a table, written only when -Dshot=<file.png> is given; for a person to look at. */
+/** A picture of a document, written only when -Dshot=<file.png> is given (and -Dshotmd=<file.md> for its text); for a person to look at. */
 class TableShotTest {
+    static final String SAMPLE = "Some text before the table.\n\n| Feature | State | Notes |\n|---|:---:|---|\n| Tables | **drawn** | as a grid, text unchanged |\n| Highlight | ^^done^^ | typed or read |\n| A much longer feature name | ok | `code|pipe` stays |\n\nAfter the table.\n";
+
     @Test void shot() throws Exception {
         var file = System.getProperty("shot");
         Assumptions.assumeTrue(file != null);
+        var mdFile = System.getProperty("shotmd");
+        var md = mdFile != null ? java.nio.file.Files.readString(java.nio.file.Path.of(mdFile)) : SAMPLE;
         FxBoot.start();
-        var md = "Some text before the table.\n\n| Feature | State | Notes |\n|---|:---:|---|\n| Tables | **drawn** | as a grid, text unchanged |\n| Highlight | ^^done^^ | typed or read |\n| A much longer feature name | ok | `code|pipe` stays |\n\nno | leading | pipe\n---|---|---\none | two | three\n\nAfter the table.\n";
         DocView[] v = new DocView[1];
         fx(() -> { var s = new Stage(); v[0] = new DocView(new EditorModel(Lossless.read(md))); s.setScene(new Scene(v[0], 760, 420)); s.show(); return null; });
         pulse(); pulse(); pulse();
