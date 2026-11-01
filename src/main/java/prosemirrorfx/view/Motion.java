@@ -83,7 +83,7 @@ final class Motion {
     /** The block's text as drawn: one character per document position (a hard break is "\n"). */
     static String drawn(BlockView tb) {
         var sb = new StringBuilder();
-        for (var n : tb.flow.getChildren()) if (n instanceof javafx.scene.text.Text t) sb.append(t.getText());
+        for (var n : tb.flow.getChildren()) if (n instanceof javafx.scene.text.Text t) sb.append(t.getText()); else if (n instanceof Table.Pipe) sb.append('|');
         // only the document's own characters: the grey interim text may follow them
         return sb.substring(0, Math.min(sb.length(), size(tb)));
     }

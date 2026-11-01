@@ -10,7 +10,7 @@ import javafx.scene.text.TextFlow;
  * slow), 120 ms in a 195 KB English one. Any change to the text, its fonts, CSS or children reaches requestLayout(),
  * which forgets the sizes; the requestLayout calls TextFlow makes on itself while laying out are ignored, as it does.
  */
-final class Flow extends TextFlow {
+class Flow extends TextFlow {
     // two widths: the one the flow is laid out at and USE_COMPUTED_SIZE, which is what containers ask for
     private double w1 = Double.NaN, h1, w2 = Double.NaN, h2, prefWidth = Double.NaN;
     private boolean laying;

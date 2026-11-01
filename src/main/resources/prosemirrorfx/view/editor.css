@@ -105,6 +105,11 @@
 
 /* ^^highlight^^ and ~~strike~~. The highlight is a band drawn behind the text (SpanBoxes); the strike is a line through it. */
 .pm-highlight-box { -fx-background-color: -pm-highlight; -fx-background-radius: 2; }
+/* pipe tables: the separating pipes are spacers, the separator row a hairline, the lines drawn behind (TableGrid) */
+.pm-p.pm-table { -fx-padding: 4 0 4 0; }
+.pm-text.pm-table-head { -fx-font-weight: bold; }
+.pm-text.pm-table-sep { -fx-font-size: 1px; -fx-fill: transparent; }
+.pm-table-grid { -fx-stroke: -pm-border; -fx-stroke-width: 1; -fx-fill: transparent; }
 .pm-text.strike { -fx-strikethrough: true; -fx-fill: -pm-muted; }
 
 /* The `>>` of a comment, drawn as one glyph: the user's as a big angle (like a terminal prompt), the assistant's as a bullet. */

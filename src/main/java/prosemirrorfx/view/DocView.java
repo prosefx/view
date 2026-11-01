@@ -37,6 +37,7 @@ public final class DocView extends StackPane {
     final FoldControls foldControls = new FoldControls(this, front);
     final CodeBoxes codeBoxes = new CodeBoxes(this, back, front);
     final SpanBoxes spanBoxes = new SpanBoxes(back);
+    final TableGrid tableGrid = new TableGrid(back);
     final SourceMode source = new SourceMode(this);
     java.util.function.Consumer<String> linkHandler = Links::browse;
     final ReadOnlyObjectWrapper<Set<String>> foldedKeys = new ReadOnlyObjectWrapper<>(Set.of());
@@ -477,6 +478,7 @@ public final class DocView extends StackPane {
         foldControls.paint(views, folds);
         codeBoxes.paint(positions, model.state().getSelection());
         spanBoxes.paint(positions);
+        tableGrid.paint(positions);
         markLayer.paint(marks(), positions, live);
         live.paint(positions, caretLayer, page.getWidth());
         if (followReading) revealReading();

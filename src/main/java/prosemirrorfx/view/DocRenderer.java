@@ -36,6 +36,12 @@ final class DocRenderer {
 
     /** A paragraph read from a file keeps its leading whitespace as a margin when it stands in the document itself, so a reply stays under its comment. */
     static BlockView textblock(Node node, int start, boolean topLevel) {
+        if (Table.is(node)) {
+            var table = new Table.TableFlow();
+            table.getStyleClass().addAll(styleClass(node), "pm-table");
+            table.getChildren().setAll(Table.runs(runs(node)));
+            return new BlockView(node, table, null, table, null, List.of(), start);
+        }
         var flow = new Flow();
         flow.getStyleClass().add(styleClass(node));
         if (Code.isBlock(node)) flow.getStyleClass().add("pm-code-block");

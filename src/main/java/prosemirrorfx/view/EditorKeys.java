@@ -60,11 +60,11 @@ final class EditorKeys {
         var state = view.model.state();
         var head = state.getSelection().getHead();
         var handled = switch (code) {
-            case ENTER -> ctrl && view.activate() || run(shift ? hardBreak : enter);
+            case ENTER -> ctrl && view.activate() || !shift && tableEnter(head) || run(shift ? hardBreak : enter);
             case BACK_SPACE -> ctrl ? deleteWord(-1) : run(backspace);
             case DELETE -> shift ? dispatch(Clip.cut(state)) : ctrl ? deleteWord(1) : run(delete);
             case INSERT -> shift ? dispatch(Clip.paste(state)) : ctrl && Clip.copy(state);
-            case TAB -> { run(shift ? outdent : indent); yield true; }
+            case TAB -> { if (!tableTab(head, shift ? -1 : 1)) run(shift ? outdent : indent); yield true; }
             case LEFT, RIGHT -> ctrl ? moveTo(Motion.word(view.positions, head, code == LEFT ? -1 : 1), shift)
                     : move(Motion.horizontal(state, code == LEFT ? -1 : 1, shift, view.folds));
             case UP, DOWN -> ctrl ? (code == UP ? view.foldAtCaret() : view.unfoldAtCaret()) : vertical(code == UP ? -1 : 1, shift);
@@ -115,6 +115,30 @@ final class EditorKeys {
         var tr = state.getTr();
         tr.delete(Math.min(head, to), Math.max(head, to));
         return dispatch(tr.scrollIntoView());
+    }
+
+    /** Tab and Shift+Tab in a pipe table: to the start of the next or previous cell; at either end of the table, nowhere. */
+    boolean tableTab(int head, int dir) {
+        var tb = view.positions.at(head);
+        if (!(tb.flow instanceof Table.TableFlow)) return false;
+        var to = Table.nextCell(tb, head - tb.start, dir);
+        if (to >= 0) moveTo(tb.start + to, false);
+        return true;
+    }
+
+    /** Enter in a pipe table: a new empty row (see Table.newRow), the caret in its first cell. */
+    boolean tableEnter(int head) {
+        var tb = view.positions.at(head);
+        if (!(tb.flow instanceof Table.TableFlow) || !view.model.state().getSelection().getEmpty()) return false;
+        var row = Table.newRow(tb, head - tb.start);
+        var at = tb.start + row.at();
+        var tr = view.model.state().getTr();
+        tr.insert(at, com.atlassian.prosemirror.model.Fragment.Companion.fromArray(java.util.List.of(
+                prosemirrorfx.core.schema.EditorSchema.HARD_BREAK.create(java.util.Map.of("raw", ""), (com.atlassian.prosemirror.model.Fragment) null, null),
+                prosemirrorfx.core.schema.EditorSchema.SCHEMA.text(row.text(), null))));
+        tr.setSelection(prosemirrorfx.core.pm.Pm.cursor(tr.getDoc(), at + 1 + row.caret()));
+        view.model.dispatch(tr.scrollIntoView());
+        return true;
     }
 
     boolean run(Command c) {
