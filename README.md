@@ -1,24 +1,24 @@
-# prosemirrorfx-view
+# prosefx-view
 
-A document editor drawn natively in JavaFX, with no WebView: the prosemirrorfx document model with headings, bold and italic, nested bullet and numbered lists, undo, find and replace, a toolbar, a status line, an optional table of contents, line numbers and zoom. Input methods that compose a word before committing it (Tamil and Hindi phonetic, Japanese, Chinese) are supported.
+A document editor drawn natively in JavaFX, with no WebView: the prosefx document model with headings, bold and italic, nested bullet and numbered lists, undo, find and replace, a toolbar, a status line, an optional table of contents, line numbers and zoom. Input methods that compose a word before committing it (Tamil and Hindi phonetic, Japanese, Chinese) are supported.
 
-Built on [prosemirror-kotlin](https://github.com/atlassian-labs/prosemirror-kotlin) by Atlassian (Apache License 2.0) through `prosemirrorfx-core`. prosemirrorfx is an independent project and is not affiliated with ProseMirror or Atlassian.
+Built on [prosemirror-kotlin](https://github.com/atlassian-labs/prosemirror-kotlin) by Atlassian (Apache License 2.0) through `prosefx-core`. prosefx is an independent project and is not affiliated with ProseMirror or Atlassian.
 
 ## Status
 
 Not yet published. Snapshots only to begin with: `0.1.0-SNAPSHOT` on `https://central.sonatype.com/repository/maven-snapshots/`. Java 25 and JavaFX 26 (`javafx-controls`).
 
     <dependency>
-        <groupId>io.github.prosemirrorfx</groupId>
-        <artifactId>prosemirrorfx-view</artifactId>
+        <groupId>io.github.prosefx</groupId>
+        <artifactId>prosefx-view</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </dependency>
 
-It brings `prosemirrorfx-core` and `prosemirrorfx-markdown` with it.
+It brings `prosefx-core` and `prosefx-markdown` with it.
 
 ## Embedding a Markdown note
 
-    var editor = new MarkdownEditor();                 // prosemirrorfx.view.embed
+    var editor = new MarkdownEditor();                 // prosefx.view.embed
     editor.setMarkdown(text);                          // load: caret at the start, undo cleared, not dirty
     root.setCenter(editor.node());                     // a javafx Region; it takes the keyboard when focused
     root.setTop(editor.toolbar());                     // optional
@@ -31,7 +31,7 @@ It brings `prosemirrorfx-core` and `prosemirrorfx-markdown` with it.
 
 `caret()` and `setCaret(int)` let the host remember where the caret was. `copy()`, `cut()`, `paste()` and `pastePlain()` do what Ctrl+C, X, V and Shift+V do, for a host toolbar or menu, and each returns whether it did anything (`DocView` has the same four). `view()` returns the underlying `DocView` for what the class does not wrap (find, zoom, line numbers, a table of contents, `Toc`). Everything is for the JavaFX thread. Keys are the editor's own (Ctrl+B, Ctrl+I, Tab and Shift+Tab on list items, Ctrl+Z, Ctrl+F, ...); it binds no function keys, so those stay free for the host.
 
-Undoing back to the loaded text makes `isDirty()` false again. The byte-for-byte guarantee comes from `Lossless` in `prosemirrorfx-markdown`.
+Undoing back to the loaded text makes `isDirty()` false again. The byte-for-byte guarantee comes from `Lossless` in `prosefx-markdown`.
 
 ## Folding
 
@@ -77,8 +77,8 @@ The stylesheet reads the same names as looked-up colours (`-pm-bg`, `-pm-text`, 
 
 ## Layout
 
-    prosemirrorfx.view         DocView and everything it draws: Toolbar, StatusBar, Toc, FindBar, Clip (copy and paste), Ime
-    prosemirrorfx.view.embed   MarkdownEditor, the embedding class
+    prosefx.view         DocView and everything it draws: Toolbar, StatusBar, Toc, FindBar, Clip (copy and paste), Ime
+    prosefx.view.embed   MarkdownEditor, the embedding class
     resources: editor.css, icons.tsv
 
 ## Tests
