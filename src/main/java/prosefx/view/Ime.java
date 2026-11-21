@@ -37,6 +37,7 @@ final class Ime {
     /** One input method update: what was committed, what is now being composed, and the caret within it. */
     void update(String committed, String composed, int caret) {
         var model = view.model;
+        if (view.readOnly.get()) return;
         removeComposing();
         if (committed != null && !committed.isEmpty()) model.type(committed);
         if (!composed.isEmpty()) {

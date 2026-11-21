@@ -1043,6 +1043,53 @@ class ViewKeysTest {
         return List.copyOf(((javafx.scene.layout.Pane) page.getChildren().get(3)).getChildren());
     }
 
+    // ---- read-only
+
+    String plainText() { return fx(() -> m.state().getDoc().textBetween(0, m.state().getDoc().getContent().getSize(), "", "")); }
+
+    @Test void aReadOnlyViewTakesNoEditsButCaretAndSelectionStillMove() {
+        open(p("hello world|"));
+        fx(() -> view.setReadOnly(true));
+        type("x");
+        for (var code : List.of(BACK_SPACE, DELETE, ENTER, TAB)) press(code);
+        press(Z, true, false);
+        press(V, true, false);
+        press(X, true, false);
+        assertEquals("hello world", plainText(), "no key edited the document");
+        press(LEFT);
+        press(LEFT);
+        assertEquals(10, fx(() -> m.state().getSelection().getFrom()), "the caret still moves");
+        press(A, true, false);
+        assertFalse(fx(() -> m.state().getSelection().getEmpty()), "select all still works");
+        press(C, true, false);
+        assertEquals("hello world", plainText(), "copy changes nothing");
+        fx(() -> view.setReadOnly(false));
+        press(END);
+        type("!");
+        assertEquals("hello world!", plainText(), "editing comes back when read-only is switched off");
+    }
+
+    @Test void aReadOnlyViewRefusesSourceModeMarksItsPageAndDropsFindReplace() {
+        open(p("one two one|"));
+        fx(() -> view.setReadOnly(true));
+        assertTrue(fx(() -> view.lookup(".pm-page").getStyleClass().contains("pm-readonly")));
+        fx(() -> view.setSourceMode(true));
+        assertFalse(fx(() -> view.sourceModeProperty().get()), "source mode is an editor, so it is refused");
+        fx(() -> view.replaceAll("one", prosefx.core.editor.Find.Options.PLAIN, "1"));
+        assertEquals("one two one", plainText(), "replace all is dropped");
+        fx(() -> view.setReadOnly(false));
+        assertFalse(fx(() -> view.lookup(".pm-page").getStyleClass().contains("pm-readonly")));
+    }
+
+    @Test void switchingReadOnlyOnLeavesSourceModeFirst() {
+        open(p("text|"));
+        fx(() -> view.setSourceMode(true));
+        assertTrue(fx(() -> view.sourceModeProperty().get()));
+        fx(() -> view.setReadOnly(true));
+        assertFalse(fx(() -> view.sourceModeProperty().get()));
+        assertEquals("text", plainText());
+    }
+
     // ---- driving
 
     void press(KeyCode code) { press(code, false, false); }

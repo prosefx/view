@@ -84,6 +84,7 @@ public final class DocView extends StackPane {
         setFocusTraversable(true);
         new EditorKeys(this);
         ime = new Ime(this);
+        readOnly.addListener((o, was, on) -> applyReadOnly(on));
         new EditorMouse(this, page);
         addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> {
             if (!e.isControlDown() || e.getDeltaY() == 0) return;
@@ -142,7 +143,22 @@ public final class DocView extends StackPane {
     public javafx.beans.property.ReadOnlyBooleanProperty lineNumbersProperty() { return lineNumbersShown.getReadOnlyProperty(); }
 
     /** Edit source: the document as its Markdown text in a plain text area, and back. Like the line numbers, a control of the editor itself, so every host has it. */
-    public void setSourceMode(boolean on) { source.set(on); }
+    public void setSourceMode(boolean on) { if (!(on && readOnly.get())) source.set(on); }
+
+    final javafx.beans.property.SimpleBooleanProperty readOnly = new javafx.beans.property.SimpleBooleanProperty();
+
+    /** A read-only view takes no edits (typing, deleting, pasting, undo, find and replace, dictation) while caret, selection, scrolling, find, folding and copy keep working. */
+    public javafx.beans.property.BooleanProperty readOnlyProperty() { return readOnly; }
+
+    public boolean isReadOnly() { return readOnly.get(); }
+
+    public void setReadOnly(boolean on) { readOnly.set(on); }
+
+    void applyReadOnly(boolean on) {
+        if (on) source.set(false);
+        model.readOnly(on);
+        if (on) page.getStyleClass().add("pm-readonly"); else page.getStyleClass().remove("pm-readonly");
+    }
 
     /**
      * What to do with an address followed by Ctrl+click or Ctrl+Enter: web and mail addresses open in the system's own program until
