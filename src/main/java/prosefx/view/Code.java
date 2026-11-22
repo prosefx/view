@@ -38,9 +38,12 @@ final class Code {
         return m.find() ? m.group(2) : "";
     }
 
-    /** True when the last line is a closing fence (and there is more than the opening line). */
+    /** True when the last line is a closing fence (and there is more than the opening line): the same character and no shorter than the opening one, so ``` ends a ``` block and is only code in a ```` one. */
     static boolean closed(List<String> lines) {
-        return lines.size() > 1 && CLOSE.matcher(lines.getLast().strip()).find();
+        if (lines.size() < 2) return false;
+        var close = CLOSE.matcher(lines.getLast().strip());
+        var open = OPEN.matcher(lines.getFirst().stripLeading());
+        return close.find() && (!open.find() || close.group(1).charAt(0) == open.group(1).charAt(0) && close.group(1).length() >= open.group(1).length());
     }
 
     /** The code itself, without the fence lines. */

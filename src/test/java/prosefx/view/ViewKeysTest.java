@@ -249,6 +249,49 @@ class ViewKeysTest {
         assertTrue(overlap <= 1, "the opening fence line ends where the first code line begins, overlap " + overlap);
     }
 
+    void caretAfter(String snippet) {
+        fx(() -> m.select(prosefx.core.pm.Pm.cursor(m.state().getDoc(), Fixtures.posAfter(m.state().getDoc(), snippet))));
+        pulse();
+    }
+
+    String saved() { return fx(() -> prosefx.markdown.Lossless.write(m.state().getDoc())); }
+
+    @Test void aTabIndentedFenceInAListItemIsDrawnAsACodeBoxAndSavedUnchanged() {
+        var md = "- The user's instruction\n\t```java\n\tmake it open\n\t```\n- Context\n";
+        openMarkdown(md);
+        assertEquals(1, visibleOf(".pm-code-box").size());
+        assertEquals("java", fx(() -> ((javafx.scene.control.Label) visibleOf(".pm-code-language").getFirst()).getText()));
+        assertEquals(md, saved());
+    }
+
+    @Test void tabInsideACodeBlockIsATabCharacter() {
+        openMarkdown("```\ncode\n```\n");
+        caretAfter("code");
+        press(TAB);
+        type("x");
+        assertEquals("```\ncode\tx\n```\n", saved());
+    }
+
+    @Test void tabInsideACodeBlockInAListItemDoesNotIndentTheItem() {
+        openMarkdown("- one\n- two\n\t```\n\tcode\n\t```\n");
+        caretAfter("code");
+        press(TAB);
+        press(TAB, false, true);
+        assertEquals("- one\n- two\n\t```\n\tcode\t\n\t```\n", saved());
+    }
+
+    @Test void tabOutsideABlockStillIndentsTheListItem() {
+        openMarkdown("- one\n- two\n\t```\n\tcode\n\t```\n");
+        caretAfter("two");
+        press(TAB);
+        assertEquals("- one\n  - two\n\t```\n\tcode\n\t```\n", saved());
+    }
+
+    @Test void aShorterFenceLineEndingAnUnclosedLongerBlockIsDrawnAsCode() {
+        openMarkdown("````\ncode\n```\n");
+        assertEquals("code\n```", Code.text(m.state().getDoc().getFirstChild()));
+    }
+
     @Test void theCopyButtonCopiesTheCodeAndNotTheFences() {
         openMarkdown(FENCED);
         var copy = (javafx.scene.control.Label) visibleOf(".pm-code-copy").getFirst();

@@ -64,7 +64,7 @@ final class EditorKeys {
             case BACK_SPACE -> ctrl ? deleteWord(-1) : run(backspace);
             case DELETE -> shift ? dispatch(Clip.cut(state)) : ctrl ? deleteWord(1) : run(delete);
             case INSERT -> shift ? dispatch(Clip.paste(state)) : ctrl && Clip.copy(state);
-            case TAB -> { if (!tableTab(head, shift ? -1 : 1)) run(shift ? outdent : indent); yield true; }
+            case TAB -> { if (inVerbatim(state)) { if (!shift) view.model.type("\t"); } else if (!tableTab(head, shift ? -1 : 1)) run(shift ? outdent : indent); yield true; }
             case LEFT, RIGHT -> ctrl ? moveTo(Motion.word(view.positions, head, code == LEFT ? -1 : 1), shift)
                     : move(Motion.horizontal(state, code == LEFT ? -1 : 1, shift, view.folds));
             case UP, DOWN -> ctrl ? (code == UP ? view.foldAtCaret() : view.unfoldAtCaret()) : vertical(code == UP ? -1 : 1, shift);
@@ -118,6 +118,11 @@ final class EditorKeys {
     }
 
     /** Tab and Shift+Tab in a pipe table: to the start of the next or previous cell; at either end of the table, nowhere. */
+    /** The caret is in a fenced block (or other verbatim text): Tab there is a tab character, never an indent of the list item around it. */
+    static boolean inVerbatim(com.atlassian.prosemirror.state.PMEditorState state) {
+        return Boolean.TRUE.equals(prosefx.core.pm.Pm.attr(state.getSelection().get_from().getParent(), "verbatim"));
+    }
+
     boolean tableTab(int head, int dir) {
         var tb = view.positions.at(head);
         if (!(tb.flow instanceof Table.TableFlow)) return false;
