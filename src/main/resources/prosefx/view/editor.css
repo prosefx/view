@@ -147,3 +147,10 @@
 .pm-text.footnote { -fx-fill: -pm-link; -fx-font-size: 0.8em; }
 .pm-p.pm-footnote-def .pm-text { -fx-font-size: 0.88em; -fx-fill: -pm-muted; }
 .pm-p.pm-footnote-def { -fx-padding: 0 0 0 4; }
+
+/* YAML front matter (FrontMatter): a quiet property block at the top, key bold and muted, value in the text colour, the --- lines small. */
+.pm-p.pm-front { -fx-padding: 6 12 6 12; -fx-background-color: -pm-code-bg; -fx-background-radius: 6; -fx-border-color: -pm-code-border; -fx-border-radius: 6; }
+.pm-front .pm-text { -fx-font-size: 0.9em; }
+.pm-front .pm-text.pm-front-key { -fx-font-weight: bold; -fx-fill: -pm-muted; }
+.pm-front .pm-text.pm-front-delim { -fx-font-size: 0.7em; -fx-fill: -pm-muted; }
+.pm-front .pm-text.pm-front-comment { -fx-font-style: italic; -fx-fill: -pm-muted; }

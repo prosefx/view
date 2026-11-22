@@ -43,6 +43,12 @@ final class DocRenderer {
             table.getChildren().setAll(Table.runs(runs(node)));
             return new BlockView(node, new Table.TableScroll(table), null, table, null, List.of(), start);
         }
+        if (topLevel && FrontMatter.is(node)) {
+            var front = new Flow();
+            front.getStyleClass().addAll(styleClass(node), "pm-front");
+            front.getChildren().setAll(FrontMatter.runs(node));
+            return new BlockView(node, front, null, front, null, List.of(), start);
+        }
         var flow = new Flow();
         flow.getStyleClass().add(styleClass(node));
         if (Code.isBlock(node)) flow.getStyleClass().add("pm-code-block");
